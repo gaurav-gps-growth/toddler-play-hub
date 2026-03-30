@@ -112,35 +112,29 @@
     let timerId;
     let audioCtx = null;
 
-    // Generate a pleasant chime using Web Audio API
     function playChime() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
 
-      // Resume context if suspended (required by some browsers)
       if (audioCtx.state === "suspended") {
         audioCtx.resume();
       }
 
-      // Create oscillator for the chime tone
       const oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
 
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
 
-      // Pleasant bell-like tone: sine wave at 523 Hz (C5 note)
       oscillator.type = "sine";
       oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime);
 
-      // Add a slight pitch drop for a more natural bell sound
       oscillator.frequency.exponentialRampToValueAtTime(
-        392, // drops to G4
+        392,
         audioCtx.currentTime + 0.5
       );
 
-      // Volume envelope: quick attack, slow decay
       gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
       gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
       gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
@@ -175,21 +169,21 @@
         if (currentLight === "green") {
           green.classList.add("green");
           status.textContent = "Green Light";
-          green.textContent = secondsLeft + "s";
+          green.textContent = secondsLeft;
         } else if (currentLight === "yellow") {
           yellow.classList.add("yellow");
           status.textContent = "Yellow Light";
-          yellow.textContent = secondsLeft + "s";
+          yellow.textContent = secondsLeft;
         } else if (currentLight === "red") {
           red.classList.add("red");
           status.textContent = "Red Light";
-          red.textContent = secondsLeft + "s";
+          red.textContent = secondsLeft;
         }
       }
 
       function startCountdown() {
         if (currentLight === "yellow") {
-          secondsLeft = 3; // fixed 3s for yellow
+          secondsLeft = 3;
         } else {
           secondsLeft = getRandomSeconds(5, 15);
         }
@@ -202,7 +196,6 @@
           if (secondsLeft <= 0) {
             clearInterval(timerId);
 
-            // Next light: green -> yellow -> red -> green ...
             if (currentLight === "green") {
               currentLight = "yellow";
             } else if (currentLight === "yellow") {
@@ -219,7 +212,6 @@
         }, 1000);
       }
 
-      // Initialize audio context on first user interaction (required for autoplay)
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
