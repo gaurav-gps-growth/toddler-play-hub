@@ -127,20 +127,20 @@
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
 
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
 
       oscillator.frequency.exponentialRampToValueAtTime(
-        392,
-        audioCtx.currentTime + 0.5
+        660,
+        audioCtx.currentTime + 0.15
       );
 
       gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+      gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
 
       oscillator.start(audioCtx.currentTime);
-      oscillator.stop(audioCtx.currentTime + 0.6);
+      oscillator.stop(audioCtx.currentTime + 0.2);
     }
 
     function getRandomSeconds(min, max) {
@@ -182,10 +182,13 @@
       }
 
       function startCountdown() {
-        if (currentLight === "yellow") {
-          secondsLeft = 3;
-        } else {
-          secondsLeft = getRandomSeconds(5, 15);
+        // Set duration based on light color
+        if (currentLight === "green") {
+          secondsLeft = getRandomSeconds(20, 25); // green: 20–25s
+        } else if (currentLight === "yellow") {
+          secondsLeft = 3; // yellow: fixed 3s
+        } else if (currentLight === "red") {
+          secondsLeft = getRandomSeconds(10, 15); // red: 10–15s
         }
 
         updateDisplay();
