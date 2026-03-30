@@ -33,12 +33,19 @@
       margin: 8px auto;
       background-color: #444;
       box-shadow: 0 0 8px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 18px;
     }
     .red {
       background-color: #ff4d4d;
     }
     .yellow {
       background-color: #ffcc00;
+      color: #333333;
     }
     .green {
       background-color: #66cc66;
@@ -64,12 +71,6 @@
       font-size: 17px;
       font-weight: 500;
     }
-    .countdown {
-      font-size: 24px;
-      font-weight: bold;
-      margin-top: 10px;
-      color: #333;
-    }
     @media (max-width: 400px) {
       .traffic-light {
         width: 80px;
@@ -78,6 +79,7 @@
       .light {
         width: 60px;
         height: 60px;
+        font-size: 16px;
       }
       button {
         padding: 10px 18px;
@@ -97,7 +99,6 @@
     </div>
 
     <div id="status" class="status">Press Start to begin.</div>
-    <div id="countdown" class="countdown"></div>
 
     <button onclick="startGame()">Start</button>
   </div>
@@ -107,19 +108,47 @@
     const yellow = document.getElementById("yellow");
     const green = document.getElementById("green");
     const status = document.getElementById("status");
-    const countdownEl = document.getElementById("countdown");
 
     let timerId;
+    let audioCtx = null;
 
-    // Chime when light changes
+    // Generate a pleasant chime using Web Audio API
     function playChime() {
-      const audio = new Audio(
-        "https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      // Resume context if suspended (required by some browsers)
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      // Create oscillator for the chime tone
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      // Pleasant bell-like tone: sine wave at 523 Hz (C5 note)
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+
+      // Add a slight pitch drop for a more natural bell sound
+      oscillator.frequency.exponentialRampToValueAtTime(
+        392, // drops to G4
+        audioCtx.currentTime + 0.5
       );
-      audio.play().catch((e) => console.log("Audio play failed:", e));
+
+      // Volume envelope: quick attack, slow decay
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.6);
     }
 
-    // Random seconds between 5 and 15
     function getRandomSeconds(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
@@ -127,52 +156,77 @@
     function startGame() {
       if (timerId) clearInterval(timerId);
 
-      let currentLight = "red";
+      let currentLight = "green";
       let secondsLeft = 0;
 
-      function updateDisplay() {
+      function clearLights() {
         red.classList.remove("red");
         yellow.classList.remove("yellow");
         green.classList.remove("green");
 
-        if (currentLight === "red") {
-          red.classList.add("red");
-          status.textContent = "Red Light";
+        red.textContent = "";
+        yellow.textContent = "";
+        green.textContent = "";
+      }
+
+      function updateDisplay() {
+        clearLights();
+
+        if (currentLight === "green") {
+          green.classList.add("green");
+          status.textContent = "Green Light";
+          green.textContent = secondsLeft + "s";
         } else if (currentLight === "yellow") {
           yellow.classList.add("yellow");
           status.textContent = "Yellow Light";
-        } else if (currentLight === "green") {
-          green.classList.add("green");
-          status.textContent = "Green Light";
+          yellow.textContent = secondsLeft + "s";
+        } else if (currentLight === "red") {
+          red.classList.add("red");
+          status.textContent = "Red Light";
+          red.textContent = secondsLeft + "s";
         }
       }
 
       function startCountdown() {
-        secondsLeft = getRandomSeconds(5, 15);
-        countdownEl.textContent = secondsLeft + " s";
+        if (currentLight === "yellow") {
+          secondsLeft = 3; // fixed 3s for yellow
+        } else {
+          secondsLeft = getRandomSeconds(5, 15);
+        }
+
+        updateDisplay();
 
         if (timerId) clearInterval(timerId);
         timerId = setInterval(() => {
           secondsLeft--;
           if (secondsLeft <= 0) {
             clearInterval(timerId);
-            if (currentLight === "red") {
+
+            // Next light: green -> yellow -> red -> green ...
+            if (currentLight === "green") {
               currentLight = "yellow";
             } else if (currentLight === "yellow") {
-              currentLight = "green";
-            } else if (currentLight === "green") {
               currentLight = "red";
+            } else if (currentLight === "red") {
+              currentLight = "green";
             }
-            updateDisplay();
+
             playChime();
             startCountdown();
           } else {
-            countdownEl.textContent = secondsLeft + " s";
+            updateDisplay();
           }
         }, 1000);
       }
 
-      updateDisplay();
+      // Initialize audio context on first user interaction (required for autoplay)
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
       playChime();
       startCountdown();
     }
